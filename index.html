@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SoulSketch — Find Your Soulmate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --gold:#d4a574;--gold-light:#e8c9a0;--purple:#8b5cf6;--purple-dark:#6d28d9;
+  --bg:#0a0a12;--card:rgba(255,255,255,0.04);--card-border:rgba(255,255,255,0.08);
+  --text:#e8e8f0;--text-dim:#8888a0;--accent:#c084fc;
+}
+html{font-size:16px}
+body{
+  font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);
+  min-height:100vh;overflow-x:hidden;
+}
+
+/* === Starfield Background === */
+.stars{position:fixed;inset:0;z-index:0;overflow:hidden}
+.stars span{
+  position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;
+  animation:twinkle var(--d,3s) ease-in-out infinite alternate;
+  opacity:0;
+}
+@keyframes twinkle{0%{opacity:0}50%{opacity:var(--o,0.8)}100%{opacity:0.1}}
+
+/* === Nebula Glow === */
+.nebula{
+  position:fixed;top:-30%;left:-20%;width:140%;height:140%;z-index:0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(139,92,246,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(212,165,116,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(192,132,252,0.05) 0%, transparent 50%);
+  pointer-events:none;
+}
+
+/* === Container === */
+.container{
+  position:relative;z-index:1;max-width:440px;margin:0 auto;
+  padding:20px 16px 40px;min-height:100vh;
+}
+
+/* === Header === */
+.header{text-align:center;padding:30px 0 20px}
+.logo{
+  font-family:'Cinzel',serif;font-size:32px;font-weight:700;
+  background:linear-gradient(135deg,var(--gold),var(--gold-light),var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:3px;margin-bottom:6px;
+}
+.tagline{font-size:13px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase}
+
+/* === Constellation SVG === */
+.constellation{
+  display:flex;justify-content:center;margin:20px 0 10px;
+}
+.constellation svg{width:180px;height:180px;filter:drop-shadow(0 0 20px rgba(139,92,246,0.3))}
+.constellation .star-dot{fill:var(--gold);animation:pulse 2s ease-in-out infinite}
+.constellation .star-line{stroke:rgba(212,165,116,0.3);stroke-width:1;fill:none}
+@keyframes pulse{0%,100%{r:3;opacity:0.8}50%{r:5;opacity:1}}
+
+/* === Section Card === */
+.card{
+  background:var(--card);border:1px solid var(--card-border);
+  border-radius:16px;padding:24px 20px;margin-bottom:16px;
+  backdrop-filter:blur(10px);
+}
+.card-title{
+  font-family:'Cinzel',serif;font-size:16px;color:var(--gold);
+  text-align:center;margin-bottom:20px;letter-spacing:1px;
+}
+
+/* === Form Elements === */
+.input-group{margin-bottom:16px}
+.input-group label{
+  display:block;font-size:12px;color:var(--text-dim);
+  margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;
+}
+.input-group input,.input-group select{
+  width:100%;padding:14px 16px;background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.1);border-radius:10px;
+  color:var(--text);font-size:15px;font-family:'Inter',sans-serif;
+  transition:border-color 0.3s;
+}
+.input-group input:focus,.input-group select:focus{
+  outline:none;border-color:var(--purple);
+  box-shadow:0 0 0 3px rgba(139,92,246,0.15);
+}
+.input-group input::placeholder{color:rgba(255,255,255,0.2)}
+.input-row{display:flex;gap:12px}
+.input-row .input-group{flex:1}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+select option{background:#1a1a2e;color:#e8e8f0}
+
+/* === Zodiac Selector === */
+.zodiac-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.zodiac-btn{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 4px;border:1px solid rgba(255,255,255,0.08);border-radius:10px;
+  background:rgba(255,255,255,0.02);cursor:pointer;transition:all 0.3s;
+  font-size:11px;color:var(--text-dim);
+}
+.zodiac-btn .emoji{font-size:22px}
+.zodiac-btn:hover,.zodiac-btn.active{
+  border-color:var(--purple);background:rgba(139,92,246,0.1);color:var(--text);
+}
+
+/* === CTA Button === */
+.cta{
+  width:100%;padding:16px;border:none;border-radius:50px;
+  font-size:17px;font-weight:600;cursor:pointer;
+  background:linear-gradient(135deg,var(--purple),var(--purple-dark));
+  color:#fff;position:relative;overflow:hidden;
+  transition:transform 0.2s,box-shadow 0.3s;
+  letter-spacing:0.5px;
+}
+.cta:hover{transform:translateY(-1px);box-shadow:0 8px 30px rgba(139,92,246,0.4)}
+.cta:active{transform:scale(0.98)}
+.cta .shimmer{
+  position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+  animation:shimmer 2.5s infinite;
+}
+@keyframes shimmer{0%{left:-100%}100%{left:100%}}
+
+/* === Loading State === */
+.loading-overlay{
+  display:none;position:fixed;inset:0;z-index:100;
+  background:rgba(10,10,18,0.95);flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;
+}
+.loading-overlay.active{display:flex}
+.orb{
+  width:80px;height:80px;border-radius:50%;
+  background:radial-gradient(circle at 30% 30%,var(--purple),var(--purple-dark));
+  box-shadow:0 0 60px rgba(139,92,246,0.5);
+  animation:orbFloat 2s ease-in-out infinite;
+}
+@keyframes orbFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-15px) scale(1.05)}}
+.loading-text{font-size:14px;color:var(--text-dim);letter-spacing:2px}
+.loading-progress{
+  width:200px;height:3px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;
+}
+.loading-bar{
+  height:100%;width:0;background:linear-gradient(90deg,var(--purple),var(--gold));
+  border-radius:3px;transition:width 0.3s;
+}
+
+/* === Result Page === */
+.result-page{display:none}
+.result-page.active{display:block}
+
+/* Soulmate Card */
+.soulmate-card{
+  position:relative;background:linear-gradient(145deg,rgba(139,92,246,0.08),rgba(212,165,116,0.05));
+  border:1px solid rgba(212,165,116,0.15);border-radius:20px;
+  padding:30px 20px;text-align:center;overflow:hidden;
+}
+.soulmate-card::before{
+  content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+  background:conic-gradient(from 0deg,transparent,rgba(139,92,246,0.1),transparent,rgba(212,165,116,0.1),transparent);
+  animation:cardRotate 8s linear infinite;
+}
+@keyframes cardRotate{to{transform:rotate(360deg)}}
+.soulmate-card-inner{position:relative;z-index:1}
+
+.avatar-frame{
+  width:140px;height:140px;margin:0 auto 20px;border-radius:50%;
+  border:2px solid var(--gold);padding:4px;
+  background:linear-gradient(135deg,var(--purple),var(--gold));
+  position:relative;
+}
+.avatar-frame .avatar-inner{
+  width:100%;height:100%;border-radius:50%;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:60px;overflow:hidden;
+  transition:opacity 0.5s;
+}
+.avatar-frame .avatar-inner svg{width:100%;height:100%}
+.avatar-frame .avatar-inner img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.avatar-frame.generating .avatar-inner{
+  animation:shimmerBg 1.5s ease-in-out infinite;
+}
+@keyframes shimmerBg{
+  0%,100%{background:var(--bg)}
+  50%{background:rgba(139,92,246,0.08)}
+}
+
+/* === Zodiac Gallery === */
+.zodiac-gallery{
+  overflow-x:auto;white-space:nowrap;padding:10px 0;margin:10px 0;
+  scrollbar-width:none;-ms-overflow-style:none;
+}
+.zodiac-gallery::-webkit-scrollbar{display:none}
+.zodiac-gallery-item{
+  display:inline-flex;flex-direction:column;align-items:center;
+  width:56px;margin:0 6px;vertical-align:top;cursor:pointer;
+  opacity:0.5;transition:opacity 0.3s;
+}
+.zodiac-gallery-item:hover{opacity:1}
+.zodiac-gallery-item svg{width:44px;height:44px}
+.zodiac-gallery-item span{font-size:9px;color:var(--text-dim);margin-top:2px;white-space:nowrap}
+
+.zodiac-badge{
+  position:absolute;bottom:-4px;right:-4px;
+  background:var(--bg);border:2px solid var(--gold);
+  border-radius:50%;width:36px;height:36px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+}
+
+.soulmate-name{
+  font-family:'Cinzel',serif;font-size:26px;color:var(--gold);
+  margin-bottom:4px;
+}
+.soulmate-zodiac{font-size:13px;color:var(--text-dim);margin-bottom:16px}
+
+.compatibility-ring{
+  width:120px;height:120px;margin:0 auto 16px;position:relative;
+}
+.compatibility-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.compatibility-ring .bg{fill:none;stroke:rgba(255,255,255,0.05);stroke-width:6}
+.compatibility-ring .fg{
+  fill:none;stroke:url(#scoreGrad);stroke-width:6;
+  stroke-linecap:round;stroke-dasharray:314;stroke-dashoffset:314;
+  transition:stroke-dashoffset 2s ease;
+}
+.compatibility-score{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+}
+.compatibility-score .num{font-size:36px;font-weight:700;color:var(--gold)}
+.compatibility-score .pct{font-size:12px;color:var(--text-dim)}
+
+.traits{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:16px 0}
+.trait{
+  padding:6px 14px;border-radius:20px;font-size:12px;
+  background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);
+  color:var(--accent);
+}
+
+.reading-text{
+  font-size:14px;line-height:1.7;color:var(--text-dim);
+  text-align:left;margin:16px 0;padding:16px;
+  background:rgba(255,255,255,0.02);border-radius:12px;
+  border-left:3px solid var(--purple);
+}
+
+/* === Paywall === */
+.paywall{
+  display:none;text-align:center;padding:24px 0;
+}
+.paywall.active{display:block}
+.paywall-title{
+  font-family:'Cinzel',serif;font-size:18px;color:var(--gold);margin-bottom:8px;
+}
+.paywall-sub{font-size:13px;color:var(--text-dim);margin-bottom:20px}
+.price-options{display:flex;gap:10px;margin-bottom:16px}
+.price-opt{
+  flex:1;padding:16px 10px;border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px;cursor:pointer;transition:all 0.3s;
+  background:rgba(255,255,255,0.02);text-align:center;position:relative;
+}
+.price-opt.popular::after{
+  content:'BEST VALUE';position:absolute;top:-10px;left:50%;transform:translateX(-50%);
+  background:var(--purple);color:#fff;font-size:9px;padding:2px 8px;
+  border-radius:10px;letter-spacing:1px;font-weight:600;
+}
+.price-opt.active{border-color:var(--purple);background:rgba(139,92,246,0.1)}
+.price-opt .period{font-size:11px;color:var(--text-dim);margin-bottom:4px}
+.price-opt .amount{font-size:22px;font-weight:700;color:var(--text)}
+.price-opt .amount span{font-size:13px;font-weight:400;color:var(--text-dim)}
+.price-opt .equivalent{font-size:10px;color:var(--text-dim);margin-top:4px}
+
+/* === Social Proof === */
+.social-proof{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin:16px 0;font-size:12px;color:var(--text-dim);
+}
+.avatars{display:flex}
+.avatars span{
+  width:24px;height:24px;border-radius:50%;border:2px solid var(--bg);
+  display:inline-flex;align-items:center;justify-content:center;font-size:12px;
+  margin-left:-6px;background:rgba(139,92,246,0.2);
+}
+.avatars span:first-child{margin-left:0}
+
+/* === Share === */
+.share-section{text-align:center;margin-top:20px}
+.share-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:10px 20px;border-radius:30px;border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.03);color:var(--text-dim);
+  font-size:13px;cursor:pointer;transition:all 0.3s;
+}
+.share-btn:hover{border-color:var(--purple);color:var(--text)}
+
+/* === Footer === */
+.footer{
+  text-align:center;padding:30px 0 10px;font-size:11px;color:rgba(255,255,255,0.2);
+  line-height:1.8;
+}
+.footer a{color:rgba(255,255,255,0.3);text-decoration:none}
+
+/* === Animations === */
+.fade-in{animation:fadeIn 0.6s ease-out}
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.slide-up{animation:slideUp 0.8s ease-out}
+@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+
+/* === Responsive === */
+@media(max-width:360px){
+  .logo{font-size:26px}
+  .zodiac-grid{grid-template-columns:repeat(3,1fr)}
+  .price-options{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<!-- Stars -->
+<div class="stars" id="stars"></div>
+<div class="nebula"></div>
+
+<!-- ===== FORM PAGE ===== -->
+<div class="container" id="formPage">
+  <div class="header">
+    <div class="logo">SOULSKETCH</div>
+    <div class="tagline">Discover Your Cosmic Match</div>
+  </div>
+
+  <div class="constellation">
+    <svg viewBox="0 0 200 200">
+      <polyline class="star-line" points="40,30 70,60 100,40 130,70 160,35 170,80 140,110 100,90 60,120 30,90 50,60"/>
+      <circle class="star-dot" cx="40" cy="30" r="3"><animate attributeName="r" values="2;4;2" dur="2s" repeatCount="indefinite"/></circle>
+      <circle class="star-dot" cx="100" cy="40" r="3"><animate attributeName="r" values="3;5;3" dur="2.5s" repeatCount="indefinite"/></circle>
+      <circle class="star-dot" cx="160" cy="35" r="3"><animate attributeName="r" values="2;4;2" dur="1.8s" repeatCount="indefinite"/></circle>
+      <circle class="star-dot" cx="130" cy="70" r="2.5"><animate attributeName="r" values="2;3.5;2" dur="2.2s" repeatCount="indefinite"/></circle>
+      <circle class="star-dot" cx="60" cy="120" r="2.5"><animate attributeName="r" values="2;4;2" dur="2.8s" repeatCount="indefinite"/></circle>
+      <circle class="star-dot" cx="170" cy="80" r="2"><animate attributeName="r" values="1.5;3;1.5" dur="3s" repeatCount="indefinite"/></circle>
+      <!-- Shooting star -->
+      <line x1="150" y1="10" x2="180" y2="30" stroke="rgba(212,165,116,0.6)" stroke-width="1.5" stroke-linecap="round">
+        <animate attributeName="opacity" values="0;1;0" dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="x1" values="130;170" dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="y1" values="5;25" dur="4s" repeatCount="indefinite"/>
+      </line>
+    </svg>
+  </div>
+
+  <!-- Your Info -->
+  <div class="card fade-in">
+    <div class="card-title">✦ About You ✦</div>
+    <div class="input-group">
+      <label>Your Name</label>
+      <input type="text" id="userName" placeholder="Enter your first name">
+    </div>
+    <div class="input-row">
+      <div class="input-group">
+        <label>Birth Date</label>
+        <input type="date" id="userBirthday">
+      </div>
+      <div class="input-group">
+        <label>Gender</label>
+        <select id="userGender">
+          <option value="">Select</option>
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+          <option value="other">Non-binary</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-group">
+      <label>Your Zodiac</label>
+      <div class="zodiac-grid" id="userZodiac"></div>
+    </div>
+  </div>
+
+  <!-- Soulmate Preferences -->
+  <div class="card fade-in" style="animation-delay:0.15s">
+    <div class="card-title">✦ Your Ideal Match ✦</div>
+    <div class="input-group">
+      <label>Soulmate's Name (or leave blank for the universe to decide)</label>
+      <input type="text" id="soulmateName" placeholder="Their name, or type 'Surprise me'">
+    </div>
+    <div class="input-group">
+      <label>What matters most to you?</label>
+      <select id="priority">
+        <option value="passion">🔥 Passion & Chemistry</option>
+        <option value="stability">🏡 Stability & Security</option>
+        <option value="adventure">🌍 Adventure & Growth</option>
+        <option value="intellect">🧠 Intellect & Deep Talks</option>
+        <option value="humor">😂 Humor & Joy</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="social-proof" id="mainSocialProof">
+    <div class="avatars"><span>👩</span><span>🧑</span><span>👩‍🦱</span><span>👨</span></div>
+    <span id="socialProofText"><strong>2.4M+</strong> soulmates discovered</span>
+  </div>
+
+  <!-- Zodiac Gallery Preview -->
+  <div class="card fade-in" style="animation-delay:0.2s;padding:16px">
+    <div class="card-title" style="font-size:13px;margin-bottom:10px">✦ Zodiac Soulmates ✦</div>
+    <div class="zodiac-gallery" id="zodiacGallery"></div>
+  </div>
+
+  <button class="cta" id="submitBtn" onclick="startReading()">
+    <span class="shimmer"></span>
+    ✨ Reveal My Soulmate ✨
+  </button>
+
+  <div class="footer">
+    <p>For entertainment purposes only</p>
+    <p><a href="#">Privacy Policy</a> · <a href="#">Terms of Service</a></p>
+  </div>
+</div>
+
+<!-- ===== LOADING ===== -->
+<div class="loading-overlay" id="loading">
+  <div class="orb"></div>
+  <div class="loading-text" id="loadingText">Aligning the stars...</div>
+  <div class="loading-progress"><div class="loading-bar" id="loadingBar"></div></div>
+</div>
+
+<!-- ===== RESULT PAGE ===== -->
+<div class="container result-page" id="resultPage">
+  <div class="header">
+    <div class="logo" style="font-size:24px">SOULSKETCH</div>
+    <div class="tagline">Your Cosmic Connection</div>
+  </div>
+
+  <div class="soulmate-card slide-up">
+    <div class="soulmate-card-inner">
+      <div class="avatar-frame">
+        <div class="avatar-inner" id="soulmateAvatar">🔮</div>
+        <div class="zodiac-badge" id="zodiacBadge">♈</div>
+      </div>
+      <div class="soulmate-name" id="resultName">—</div>
+      <div class="soulmate-zodiac" id="resultZodiac">—</div>
+
+      <div class="compatibility-ring">
+        <svg viewBox="0 0 120 120">
+          <defs>
+            <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="var(--purple)"/>
+              <stop offset="100%" stop-color="var(--gold)"/>
+            </linearGradient>
+          </defs>
+          <circle class="bg" cx="60" cy="60" r="50"/>
+          <circle class="fg" id="scoreRing" cx="60" cy="60" r="50"/>
+        </svg>
+        <div class="compatibility-score">
+          <span class="num" id="scoreNum">0</span>
+          <span class="pct">COMPATIBLE</span>
+        </div>
+      </div>
+
+      <div class="traits" id="traits"></div>
+    </div>
+  </div>
+
+  <!-- Reading (blurred before paywall) -->
+  <div class="card slide-up" style="animation-delay:0.2s">
+    <div class="card-title">✦ Your Reading ✦</div>
+    <div id="readingContent">
+      <div class="reading-text" id="readingText" style="filter:blur(4px);user-select:none">
+        The stars reveal a profound connection between your souls. Your cosmic energies intertwine in a dance written in the constellations long before you were born. This connection transcends the physical realm — it speaks to the very essence of who you are and who you are meant to become together.
+
+        The universe has been conspiring to bring you together. Every decision, every path taken and not taken, has led you to this moment of recognition. When your eyes meet, there will be an inexplicable sense of familiarity, as if you have known each other across many lifetimes.
+
+        Your connection will be marked by deep emotional understanding. Where others see complexity, you will find simplicity. Where others see obstacles, you will see opportunities for growth together. The bond between you defies conventional explanation — it simply is, as natural as breathing.
+      </div>
+    </div>
+  </div>
+
+  <!-- Paywall -->
+  <div class="paywall active" id="paywall">
+    <div class="paywall-title">🔓 Unlock Your Full Reading</div>
+    <div class="paywall-sub">Get your complete soulmate analysis, compatibility deep-dive, and relationship guidance</div>
+
+    <div class="price-options">
+      <div class="price-opt" onclick="selectPlan(this,'weekly')" data-plan="weekly">
+        <div class="period">Weekly</div>
+        <div class="amount">$6.99<span>/wk</span></div>
+        <div class="equivalent">Try it out</div>
+      </div>
+      <div class="price-opt popular active" onclick="selectPlan(this,'monthly')" data-plan="monthly">
+        <div class="period">Monthly</div>
+        <div class="amount">$9.99<span>/mo</span></div>
+        <div class="equivalent">$0.33/day</div>
+      </div>
+      <div class="price-opt" onclick="selectPlan(this,'yearly')" data-plan="yearly">
+        <div class="period">Yearly</div>
+        <div class="amount">$39.99<span>/yr</span></div>
+        <div class="equivalent">$3.33/mo — Save 67%</div>
+      </div>
+    </div>
+
+    <button class="cta" onclick="handleSubscribe()">
+      <span class="shimmer"></span>
+      💜 Subscribe & Unlock
+    </button>
+
+    <div class="stripe-badge" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;font-size:11px;color:rgba(255,255,255,0.3);">🔒 Secured by Stripe</div>
+    <div class="social-proof" style="margin-top:14px">
+      <span>🔒 Cancel anytime · 7-day money-back guarantee</span>
+    </div>
+  </div>
+
+  <!-- Share (shown after "unlock") -->
+  <div class="share-section" id="shareSection" style="display:none">
+    <button class="share-btn" onclick="handleShare()">📤 Share Your Result</button>
+  </div>
+
+  <div class="footer">
+    <p>For entertainment purposes only · Not a dating service</p>
+    <p><a href="#">Privacy Policy</a> · <a href="#">Terms</a> · <a href="#">Restore Purchase</a></p>
+  </div>
+</div>
+
+<script src="utm-tracker.js"></script>
+<script src="deeplink.js"></script>
+<script src="ab-config.js"></script>
+<script src="ab-testing.js"></script>
+<script src="portrait-engine.js"></script>
+<script src="ai-engine.js"></script>
+<script>
+// ===== DATA =====
+const zodiacs = [
+  {name:'Aries',sym:'♈',emoji:'🐏',dates:'Mar 21 – Apr 19'},
+  {name:'Taurus',sym:'♉',emoji:'🐂',dates:'Apr 20 – May 20'},
+  {name:'Gemini',sym:'♊',emoji:'♊',dates:'May 21 – Jun 20'},
+  {name:'Cancer',sym:'♋',emoji:'🦀',dates:'Jun 21 – Jul 22'},
+  {name:'Leo',sym:'♌',emoji:'🦁',dates:'Jul 23 – Aug 22'},
+  {name:'Virgo',sym:'♍',emoji:'♍',dates:'Aug 23 – Sep 22'},
+  {name:'Libra',sym:'♎',emoji:'⚖️',dates:'Sep 23 – Oct 22'},
+  {name:'Scorpio',sym:'♏',emoji:'🦂',dates:'Oct 23 – Nov 21'},
+  {name:'Sagittarius',sym:'♐',emoji:'🏹',dates:'Nov 22 – Dec 21'},
+  {name:'Capricorn',sym:'♑',emoji:'♑',dates:'Dec 22 – Jan 19'},
+  {name:'Aquarius',sym:'♒',emoji:'♒',dates:'Jan 20 – Feb 18'},
+  {name:'Pisces',sym:'♓',emoji:'🐟',dates:'Feb 19 – Mar 20'},
+];
+
+const readings = [
+  `The stars reveal a profound connection between your souls. Your cosmic energies intertwine in a dance written in the constellations long before you were born. This connection transcends the physical realm — it speaks to the very essence of who you are and who you are meant to become together. The universe has been conspiring to bring you to this moment of recognition.`,
+  `Your soulmate carries a quiet intensity that draws you in like gravity. They won't overwhelm you — instead, they'll feel like coming home after a long journey. The connection between you operates on a frequency that most people never experience. Trust the pull you feel; it's the universe confirming what your soul already knows.`,
+  `The celestial alignment between your charts suggests a relationship that transforms both of you at the deepest level. This isn't just romance — it's evolution. Your soulmate challenges you to become the best version of yourself while loving you unconditionally through the process. Growth and comfort, beautifully intertwined.`,
+  `Written in the stars is a love story that defies logic. Your soulmate is someone who sees the parts of you that you keep hidden from the world — and loves those parts most of all. Together, you create a sanctuary from the chaos of everyday life. Two souls, one wavelength, infinite possibilities.`,
+  `The cosmos has aligned to show you a connection built on mutual admiration and deep respect. Your soulmate is your intellectual equal and emotional complement. Where you are fire, they are the wind that makes you burn brighter. Together, you are unstoppable — a force that the universe itself celebrates.`
+];
+
+const traitSets = [
+  ['Deeply Empathetic','Creative Soul','Natural Leader','Loyal Heart','Old Soul'],
+  ['Adventurous Spirit','Quick Wit','Warm Presence','Fearless Dreamer','Gentle Strength'],
+  ['Magnetic Energy','Wise Beyond Years','Quiet Confidence','Passionate Mind','Nurturing Soul'],
+  ['Brilliant Thinker','Free Spirit','Emotionally Intelligent','Fiercely Loyal','Playful Heart'],
+  ['Grounded Energy','Intuitive Healer','Bold Visionary','Romantic Idealist','Steadfast Partner']
+];
+
+const soulmateNames = {
+  male:['Alexander','Ethan','Sebastian','James','Oliver','Liam','Noah','Lucas','Henry','Daniel','Matthew','Jack'],
+  female:['Sophia','Isabella','Olivia','Emma','Ava','Mia','Charlotte','Amelia','Harper','Luna','Grace','Chloe'],
+  other:['Alex','Jordan','Riley','Taylor','Casey','Morgan','Quinn','Avery','Sage','River','Sky','Phoenix']
+};
+
+const avatars = {
+  male:['🧑‍🦰','👨','🧑‍🦱','👱','🧔','🧑‍🦳'],
+  female:['👩','👩‍🦰','👩‍🦱','👱‍♀','🧑‍🦳','👧'],
+  other:['🧑','🧓','👤','🫥','🥷','🎭']
+};
+
+let selectedZodiac = null;
+let selectedPlan = 'monthly';
+
+// ===== INIT =====
+function init(){
+  // Generate stars
+  const starsEl = document.getElementById('stars');
+  for(let i=0;i<80;i++){
+    const s = document.createElement('span');
+    s.style.left = Math.random()*100+'%';
+    s.style.top = Math.random()*100+'%';
+    s.style.setProperty('--d',(2+Math.random()*4)+'s');
+    s.style.setProperty('--o',(0.3+Math.random()*0.7));
+    s.style.width = s.style.height = (1+Math.random()*2)+'px';
+    starsEl.appendChild(s);
+  }
+  // Generate zodiac grid
+  const grid = document.getElementById('userZodiac');
+  zodiacs.forEach(z=>{
+    const btn = document.createElement('div');
+    btn.className = 'zodiac-btn';
+    btn.innerHTML = `<span class="emoji">${z.emoji}</span><span>${z.name}</span>`;
+    btn.onclick = ()=>{
+      grid.querySelectorAll('.zodiac-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedZodiac = z;
+    };
+    grid.appendChild(btn);
+  });
+  // Populate zodiac gallery
+  if(window.PortraitEngine){
+    const gallery = document.getElementById('zodiacGallery');
+    const allSVGs = PortraitEngine.getAllZodiacSVGs();
+    allSVGs.forEach(({name, svg})=>{
+      const item = document.createElement('div');
+      item.className = 'zodiac-gallery-item';
+      item.innerHTML = svg + `<span>${name}</span>`;
+      item.querySelector('svg').style.width = '44px';
+      item.querySelector('svg').style.height = '44px';
+      gallery.appendChild(item);
+    });
+  }
+  // Track form start on first interaction
+  var formStarted = false;
+  ['userName','soulmateName','userBirthday','userGender','priority'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){
+      el.addEventListener('focus',function(){
+        if(!formStarted){
+          formStarted=true;
+          if(typeof window.trackEvent==='function') trackEvent('form_start');
+        }
+      },{once:true});
+    }
+  });
+}
+init();
+
+// ===== MAIN FLOW =====
+function startReading(){
+  const name = document.getElementById('userName').value.trim();
+  if(!name){shakeEl(document.getElementById('userName'));return;}
+
+  // Track form submission
+  if(typeof window.trackEvent==='function'){
+    trackEvent('form_submit',{
+      zodiac: selectedZodiac?.name || 'auto',
+      priority: document.getElementById('priority').value,
+    });
+  }
+
+  // Show loading
+  const loading = document.getElementById('loading');
+  loading.classList.add('active');
+
+  const messages = [
+    'Aligning the stars...',
+    'Reading your cosmic signature...',
+    'Scanning the astral plane...',
+    'Calculating soul frequencies...',
+    '✨ AI is crafting your reading...',
+    'Drawing your connection...'
+  ];
+  let step = 0;
+  const bar = document.getElementById('loadingBar');
+  const txt = document.getElementById('loadingText');
+  const totalSteps = messages.length;
+
+  // Kick off AI generation in parallel with the loading animation
+  const gender = document.getElementById('userGender').value || 'other';
+  const priority = document.getElementById('priority').value;
+  const inputSoulmate = document.getElementById('soulmateName').value.trim();
+
+  // Determine soulmate name & zodiac
+  const pool = soulmateNames[gender==='male'?'female':gender==='female'?'male':'other'];
+  const soulName = (inputSoulmate && inputSoulmate.toLowerCase()!=='surprise me')
+    ? inputSoulmate : pool[Math.floor(Math.random()*pool.length)];
+  const userZod = selectedZodiac || zodiacs[Math.floor(Math.random()*zodiacs.length)];
+  const soulZod = zodiacs[Math.floor(Math.random()*zodiacs.length)];
+
+  // Start AI generation (async, non-blocking)
+  const aiPromise = (async () => {
+    // Try backend proxy first
+    try {
+      const resp = await fetch('/api/reading', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userName: name,
+          userZodiac: userZod.name,
+          soulmateName: soulName,
+          soulmateZodiac: soulZod.name,
+          priority: priority,
+        }),
+      });
+      if (resp.ok) return await resp.json();
+    } catch (_) { /* no backend, use local */ }
+
+    // Local fallback
+    return SoulSketchAI.templateGenerate({
+      userName: name,
+      userZodiac: userZod.name,
+      soulmateName: soulName,
+      soulmateZodiac: soulZod.name,
+      priority: priority,
+    });
+  })();
+
+  // Animate loading steps
+  const interval = setInterval(() => {
+    step++;
+    bar.style.width = Math.min(step * (100 / totalSteps), 95) + '%';
+    if (step < totalSteps) txt.textContent = messages[step];
+    if (step >= totalSteps) {
+      clearInterval(interval);
+      // Wait for AI result (or timeout after 8s)
+      const timeout = new Promise(r => setTimeout(() => r(null), 8000));
+      Promise.race([aiPromise, timeout]).then(result => {
+        bar.style.width = '100%';
+        setTimeout(() => {
+          loading.classList.remove('active');
+          showResult(name, soulName, userZod, soulZod, result);
+        }, 300);
+      });
+    }
+  }, 600);
+}
+
+function showResult(userName, soulName, userZodiac, soulZodiac, aiResult){
+  const gender = document.getElementById('userGender').value || 'other';
+
+  // Use AI result or hardcoded fallback
+  const score   = aiResult?.compatibility || (72 + Math.floor(Math.random()*24));
+  const reading = aiResult?.reading || readings[Math.floor(Math.random()*readings.length)];
+  const traits  = aiResult?.traits  || traitSets[Math.floor(Math.random()*traitSets.length)];
+
+  // Fill result
+  document.getElementById('formPage').style.display='none';
+  const rp = document.getElementById('resultPage');
+  rp.classList.add('active');
+
+  // Generate SVG portrait
+  const avatarEl = document.getElementById('soulmateAvatar');
+  avatarEl.innerHTML = '<div style="opacity:0.3;font-size:40px">✨</div>';
+  PortraitEngine.generatePortrait(soulZodiac.name, gender).then(({imageUrl, svgString})=>{
+    avatarEl.innerHTML = svgString;
+    avatarEl.querySelector('svg').style.width = '100%';
+    avatarEl.querySelector('svg').style.height = '100%';
+  }).catch(()=>{
+    avatarEl.textContent = '🔮';
+  });
+  document.getElementById('zodiacBadge').textContent = soulZodiac.sym;
+  document.getElementById('resultName').textContent = soulName;
+  document.getElementById('resultZodiac').textContent =
+    `${soulZodiac.name} · ${soulZodiac.dates}`;
+
+  // Animate score
+  setTimeout(()=>{
+    const ring = document.getElementById('scoreRing');
+    const offset = 314 - (314 * score / 100);
+    ring.style.strokeDashoffset = offset;
+    animateNumber('scoreNum',0,score,1500);
+  },300);
+
+  // Traits
+  const traitsEl = document.getElementById('traits');
+  traitsEl.innerHTML = traits.map(t=>`<span class="trait">${t}</span>`).join('');
+
+  // Reading text — format paragraphs
+  const readingEl = document.getElementById('readingText');
+  readingEl.innerHTML = reading
+    .split(/\n{2,}/)
+    .map(p => `<p style="margin-bottom:12px">${p.trim()}</p>`)
+    .join('');
+
+  // Scroll to top
+  window.scrollTo({top:0,behavior:'smooth'});
+
+  // Track paywall view
+  setTimeout(function(){
+    if(typeof window.trackEvent==='function') trackEvent('paywall_view');
+  },500);
+}
+
+// ===== HELPERS =====
+function animateNumber(id,from,to,dur){
+  const el = document.getElementById(id);
+  const start = performance.now();
+  function tick(now){
+    const p = Math.min((now-start)/dur,1);
+    const ease = 1-Math.pow(1-p,3);
+    el.textContent = Math.round(from+(to-from)*ease);
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function shakeEl(el){
+  el.style.borderColor='#ef4444';
+  el.style.animation='shake 0.4s';
+  setTimeout(()=>{el.style.borderColor='';el.style.animation='';},500);
+}
+
+function selectPlan(el,plan){
+  document.querySelectorAll('.price-opt').forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+  selectedPlan = plan;
+}
+
+function handleSubscribe(){
+  // Track subscribe click
+  if(typeof window.trackEvent==='function') trackEvent('subscribe_click',{plan:selectedPlan});
+
+  // Overridden by stripe-integration.js — this is a safe fallback
+  document.getElementById('paywall').style.display='none';
+  document.getElementById('readingText').style.filter='none';
+  document.getElementById('readingText').style.userSelect='auto';
+  document.getElementById('shareSection').style.display='block';
+
+  // Track subscribe complete (fallback path; stripe may override)
+  if(typeof window.trackEvent==='function') trackEvent('subscribe_complete',{plan:selectedPlan});
+
+  // Replace static share button with deep-link share row
+  var shareSection = document.getElementById('shareSection');
+  shareSection.innerHTML = '';
+  if(window.DeepLink){
+    DeepLink.createShareButtons(shareSection);
+  }
+}
+
+function handleShare(){
+  // Use deep link system
+  if(window.DeepLink){
+    DeepLink.universalShare();
+  } else {
+    var name = document.getElementById('resultName').textContent;
+    var text = '🔮 I just discovered my soulmate is '+name+'! Find yours on SoulSketch ✨';
+    if(navigator.share){
+      navigator.share({title:'SoulSketch',text:text,url:window.location.href});
+    } else {
+      navigator.clipboard.writeText(text);
+      alert('Copied to clipboard! Share on TikTok, Instagram, or WhatsApp 💜');
+    }
+  }
+}
+
+// Shake animation (injected)
+const style = document.createElement('style');
+style.textContent = '@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}';
+document.head.appendChild(style);
+</script>
+<script src="stripe-integration.js"></script>
+</body>
+</html>

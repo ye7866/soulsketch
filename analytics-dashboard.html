@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SoulSketch — Analytics Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a12;--card:rgba(255,255,255,0.04);--card-border:rgba(255,255,255,0.08);
+  --text:#e8e8f0;--text-dim:#8888a0;--gold:#d4a574;--purple:#8b5cf6;--accent:#c084fc;
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px}
+h1{font-size:28px;font-weight:700;margin-bottom:4px;
+  background:linear-gradient(135deg,var(--gold),var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{color:var(--text-dim);font-size:13px;margin-bottom:32px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px}
+.card{background:var(--card);border:1px solid var(--card-border);border-radius:16px;padding:20px}
+.card-title{font-size:13px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.stat{font-size:36px;font-weight:700;color:var(--gold)}
+.stat-label{font-size:12px;color:var(--text-dim);margin-top:2px}
+.chart-wrap{position:relative;height:260px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;border-bottom:1px solid var(--card-border);color:var(--text-dim);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:1px}
+td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04)}
+tr:hover td{background:rgba(255,255,255,0.02)}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:500}
+.badge-purple{background:rgba(139,92,246,0.15);color:var(--accent)}
+.badge-gold{background:rgba(212,165,116,0.15);color:var(--gold)}
+.badge-green{background:rgba(34,197,94,0.15);color:#22c55e}
+.badge-red{background:rgba(239,68,68,0.15);color:#ef4444}
+.funnel{display:flex;align-items:flex-end;gap:12px;height:200px;padding:20px 0}
+.funnel-step{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;position:relative}
+.funnel-bar{width:100%;border-radius:8px 8px 0 0;background:linear-gradient(180deg,var(--purple),rgba(139,92,246,0.3));transition:height 1s ease;min-height:4px}
+.funnel-label{font-size:10px;color:var(--text-dim);text-align:center;white-space:nowrap}
+.funnel-count{font-size:14px;font-weight:700;color:var(--gold)}
+.funnel-pct{font-size:10px;color:var(--text-dim)}
+.refresh-btn{position:fixed;top:24px;right:24px;padding:8px 16px;border-radius:20px;
+  border:1px solid var(--card-border);background:var(--card);color:var(--text-dim);
+  font-size:12px;cursor:pointer;transition:all 0.2s}
+.refresh-btn:hover{border-color:var(--purple);color:var(--text)}
+.empty{text-align:center;padding:60px 20px;color:var(--text-dim)}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:0.5}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.funnel{flex-wrap:wrap;height:auto}.funnel-step{min-width:80px}}
+</style>
+</head>
+<body>
+
+<h1>📊 SoulSketch Analytics</h1>
+<p class="subtitle">Real-time event tracking dashboard</p>
+<button class="refresh-btn" onclick="loadDashboard()">↻ Refresh</button>
+
+<!-- KPI Cards -->
+<div class="grid">
+  <div class="card">
+    <div class="card-title">Total Events</div>
+    <div class="stat" id="totalEvents">—</div>
+    <div class="stat-label" id="eventRange">—</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Unique Visitors</div>
+    <div class="stat" id="uniqueVisitors">—</div>
+    <div class="stat-label">by visitor ID</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Conversion Rate</div>
+    <div class="stat" id="conversionRate">—</div>
+    <div class="stat-label">form_submit → subscribe_complete</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Top Source</div>
+    <div class="stat" id="topSource">—</div>
+    <div class="stat-label">by utm_source</div>
+  </div>
+</div>
+
+<!-- Funnel -->
+<div class="card" style="margin-bottom:24px">
+  <div class="card-title">Conversion Funnel</div>
+  <div class="funnel" id="funnel"></div>
+</div>
+
+<!-- Charts -->
+<div class="grid">
+  <div class="card">
+    <div class="card-title">Events by Type</div>
+    <div class="chart-wrap"><canvas id="eventTypeChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">UTM Source Breakdown</div>
+    <div class="chart-wrap"><canvas id="utmChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Events Table -->
+<div class="card" style="margin-top:24px">
+  <div class="card-title">Recent Events</div>
+  <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Event</th><th>Visitor</th><th>Source</th><th>Metadata</th></tr>
+      </thead>
+      <tbody id="eventsTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+var QUEUE_KEY = 'ss_event_queue';
+var eventTypeChart = null;
+var utmChart = null;
+
+function getEvents() {
+  try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) || []; }
+  catch (_) { return []; }
+}
+
+// Also try to fetch from API
+function fetchEvents() {
+  return fetch('/api/events').then(function(r) {
+    if (r.ok) return r.json();
+    return null;
+  }).catch(function() { return null; });
+}
+
+function loadDashboard() {
+  // Try API first, fall back to localStorage
+  fetchEvents().then(function(apiEvents) {
+    var events = apiEvents && apiEvents.length ? apiEvents : getEvents();
+    if (!events.length) {
+      showEmpty();
+      return;
+    }
+    renderKPIs(events);
+    renderFunnel(events);
+    renderEventTypeChart(events);
+    renderUTMChart(events);
+    renderTable(events);
+  });
+}
+
+function showEmpty() {
+  document.getElementById('totalEvents').textContent = '0';
+  document.getElementById('eventRange').textContent = 'No events tracked yet';
+  document.getElementById('uniqueVisitors').textContent = '0';
+  document.getElementById('conversionRate').textContent = '—';
+  document.getElementById('topSource').textContent = '—';
+  document.getElementById('funnel').innerHTML = '<div class="empty"><div class="empty-icon">📭</div>No events yet. Visit the app and interact to see data.</div>';
+  document.getElementById('eventsTable').innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:40px">No events tracked yet</td></tr>';
+}
+
+function renderKPIs(events) {
+  document.getElementById('totalEvents').textContent = events.length.toLocaleString();
+
+  // Date range
+  var times = events.map(function(e) { return new Date(e.timestamp); }).sort();
+  if (times.length > 1) {
+    var fmt = { month: 'short', day: 'numeric' };
+    document.getElementById('eventRange').textContent =
+      times[0].toLocaleDateString('en', fmt) + ' – ' + times[times.length - 1].toLocaleDateString('en', fmt);
+  } else {
+    document.getElementById('eventRange').textContent = times[0] ? times[0].toLocaleString() : '—';
+  }
+
+  // Unique visitors
+  var visitors = {};
+  events.forEach(function(e) { visitors[e.visitorId] = true; });
+  document.getElementById('uniqueVisitors').textContent = Object.keys(visitors).length;
+
+  // Conversion rate
+  var forms = 0, completes = 0;
+  events.forEach(function(e) {
+    if (e.event === 'form_submit') forms++;
+    if (e.event === 'subscribe_complete') completes++;
+  });
+  var rate = forms > 0 ? ((completes / forms) * 100).toFixed(1) + '%' : '—';
+  document.getElementById('conversionRate').textContent = rate;
+
+  // Top source
+  var sources = {};
+  events.forEach(function(e) {
+    var s = (e.utm && e.utm.utm_source) || 'direct';
+    sources[s] = (sources[s] || 0) + 1;
+  });
+  var sorted = Object.entries(sources).sort(function(a, b) { return b[1] - a[1]; });
+  document.getElementById('topSource').textContent = sorted.length ? sorted[0][0] : 'direct';
+}
+
+function renderFunnel(events) {
+  var steps = [
+    { key: 'page_view', label: 'Page View' },
+    { key: 'form_start', label: 'Form Start' },
+    { key: 'form_submit', label: 'Form Submit' },
+    { key: 'paywall_view', label: 'Paywall View' },
+    { key: 'subscribe_click', label: 'Subscribe Click' },
+    { key: 'subscribe_complete', label: 'Subscribed' },
+  ];
+
+  var counts = {};
+  events.forEach(function(e) { counts[e.event] = (counts[e.event] || 0) + 1; });
+
+  var max = counts[steps[0].key] || 1;
+  var container = document.getElementById('funnel');
+  container.innerHTML = '';
+
+  steps.forEach(function(step) {
+    var count = counts[step.key] || 0;
+    var pct = max > 0 ? ((count / max) * 100) : 0;
+    var div = document.createElement('div');
+    div.className = 'funnel-step';
+    div.innerHTML =
+      '<div class="funnel-count">' + count + '</div>' +
+      '<div class="funnel-bar" style="height:' + Math.max(pct * 1.8, 4) + 'px"></div>' +
+      '<div class="funnel-label">' + step.label + '</div>' +
+      '<div class="funnel-pct">' + (max > 0 ? ((count / max) * 100).toFixed(0) : 0) + '%</div>';
+    container.appendChild(div);
+  });
+}
+
+function renderEventTypeChart(events) {
+  var counts = {};
+  events.forEach(function(e) { counts[e.event] = (counts[e.event] || 0) + 1; });
+
+  var labels = Object.keys(counts);
+  var data = Object.values(counts);
+  var colors = ['#8b5cf6', '#d4a574', '#c084fc', '#6d28d9', '#22c55e', '#ef4444', '#f59e0b', '#06b6d4'];
+
+  if (eventTypeChart) eventTypeChart.destroy();
+  eventTypeChart = new Chart(document.getElementById('eventTypeChart'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{ data: data, backgroundColor: colors.slice(0, labels.length), borderRadius: 6, borderSkipped: false }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8888a0', font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#8888a0' }, grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true },
+      },
+    },
+  });
+}
+
+function renderUTMChart(events) {
+  var sources = {};
+  events.forEach(function(e) {
+    var s = (e.utm && e.utm.utm_source) || 'direct';
+    sources[s] = (sources[s] || 0) + 1;
+  });
+
+  var labels = Object.keys(sources);
+  var data = Object.values(sources);
+  var colors = ['#8b5cf6', '#d4a574', '#22c55e', '#ef4444', '#06b6d4', '#f59e0b', '#c084fc'];
+
+  if (utmChart) utmChart.destroy();
+  utmChart = new Chart(document.getElementById('utmChart'), {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{ data: data, backgroundColor: colors.slice(0, labels.length), borderWidth: 0 }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#8888a0', padding: 16, font: { size: 11 } },
+        },
+      },
+    },
+  });
+}
+
+function renderTable(events) {
+  var tbody = document.getElementById('eventsTable');
+  tbody.innerHTML = '';
+  // Show last 50 events, most recent first
+  var recent = events.slice(-50).reverse();
+  recent.forEach(function(e) {
+    var tr = document.createElement('tr');
+    var time = new Date(e.timestamp);
+    var source = (e.utm && e.utm.utm_source) || 'direct';
+    var badgeClass = source === 'tiktok' ? 'badge-purple' : source === 'direct' ? 'badge-gold' : 'badge-green';
+    var meta = e.metadata ? JSON.stringify(e.metadata) : '{}';
+    if (meta.length > 40) meta = meta.substring(0, 40) + '…';
+
+    tr.innerHTML =
+      '<td style="white-space:nowrap;color:var(--text-dim)">' + time.toLocaleString() + '</td>' +
+      '<td><span class="badge badge-purple">' + e.event + '</span></td>' +
+      '<td style="font-family:monospace;font-size:11px;color:var(--text-dim)">' +
+        (e.visitorId || '').substring(0, 8) + '…</td>' +
+      '<td><span class="badge ' + badgeClass + '">' + source + '</span></td>' +
+      '<td style="font-family:monospace;font-size:11px;color:var(--text-dim)">' + meta + '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+// Auto-load
+loadDashboard();
+
+// Auto-refresh every 10s
+setInterval(loadDashboard, 10000);
+</script>
+</body>
+</html>

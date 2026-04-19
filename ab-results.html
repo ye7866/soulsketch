@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SoulSketch — A/B Test Results</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a12;--card:rgba(255,255,255,0.04);--card-border:rgba(255,255,255,0.08);
+  --text:#e8e8f0;--text-dim:#8888a0;--gold:#d4a574;--purple:#8b5cf6;
+  --accent:#c084fc;--green:#34d399;--red:#f87171;--yellow:#fbbf24;
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:20px}
+.container{max-width:900px;margin:0 auto}
+
+/* Header */
+.header{text-align:center;margin-bottom:32px}
+.header h1{
+  font-family:'Cinzel',serif;font-size:28px;font-weight:700;
+  background:linear-gradient(135deg,var(--gold),var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:2px;margin-bottom:4px;
+}
+.header .sub{font-size:13px;color:var(--text-dim);letter-spacing:1px}
+.header .visitor{font-size:11px;color:var(--text-dim);margin-top:8px;opacity:0.6}
+
+/* Test Card */
+.test-card{
+  background:var(--card);border:1px solid var(--card-border);
+  border-radius:16px;padding:24px;margin-bottom:20px;
+  backdrop-filter:blur(10px);
+}
+.test-card h2{
+  font-family:'Cinzel',serif;font-size:16px;color:var(--gold);
+  margin-bottom:4px;letter-spacing:0.5px;
+}
+.test-card .desc{font-size:12px;color:var(--text-dim);margin-bottom:16px}
+.test-card .status{
+  display:inline-block;padding:3px 10px;border-radius:12px;
+  font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;
+  margin-bottom:16px;
+}
+.test-card .status.active{background:rgba(52,211,153,0.15);color:var(--green)}
+.test-card .status.paused{background:rgba(251,191,36,0.15);color:var(--yellow)}
+
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{
+  text-align:left;padding:10px 12px;font-size:11px;text-transform:uppercase;
+  letter-spacing:1px;color:var(--text-dim);border-bottom:1px solid rgba(255,255,255,0.06);
+  font-weight:600;
+}
+tbody td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.03)}
+tbody tr:hover{background:rgba(255,255,255,0.02)}
+
+.variant-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:8px;font-weight:700;font-size:13px;
+  background:rgba(139,92,246,0.15);color:var(--accent);margin-right:8px;
+}
+.variant-badge.winner{background:rgba(52,211,153,0.2);color:var(--green)}
+
+.variant-label{font-weight:500;color:var(--text)}
+
+.metric{font-variant-numeric:tabular-nums}
+.metric.highlight{color:var(--green);font-weight:600}
+
+.bar-cell{width:200px}
+.bar-wrap{background:rgba(255,255,255,0.05);border-radius:4px;height:8px;overflow:hidden;width:100%}
+.bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--purple),var(--accent));transition:width 0.6s ease}
+.bar-fill.winner{background:linear-gradient(90deg,var(--green),#6ee7b7)}
+
+.winner-tag{
+  display:inline-block;padding:2px 8px;border-radius:8px;
+  font-size:9px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;
+  background:rgba(52,211,153,0.15);color:var(--green);margin-left:8px;
+}
+
+.ci{font-size:11px;color:var(--text-dim)}
+
+/* Summary */
+.summary-row{display:flex;gap:16px;margin-bottom:24px}
+.summary-box{
+  flex:1;background:var(--card);border:1px solid var(--card-border);
+  border-radius:12px;padding:20px;text-align:center;
+}
+.summary-box .val{font-size:28px;font-weight:700;color:var(--gold)}
+.summary-box .lbl{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+
+/* Actions */
+.actions{text-align:center;margin-top:20px}
+.actions button{
+  padding:8px 20px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.03);color:var(--text-dim);font-size:12px;
+  cursor:pointer;transition:all 0.2s;margin:0 6px;font-family:'Inter',sans-serif;
+}
+.actions button:hover{border-color:var(--purple);color:var(--text)}
+
+.empty{color:var(--text-dim);font-size:13px;text-align:center;padding:40px 20px}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>SOULSKETCH</h1>
+    <div class="sub">A/B Test Results Dashboard</div>
+    <div class="visitor" id="visitorInfo"></div>
+  </div>
+
+  <div class="summary-row" id="summaryRow"></div>
+  <div id="testsContainer"></div>
+
+  <div class="actions">
+    <button onclick="loadData()">🔄 Refresh</button>
+    <button onclick="exportCSV()">📥 Export CSV</button>
+    <button onclick="clearData()">🗑️ Clear All Data</button>
+  </div>
+</div>
+
+<script src="ab-config.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const STORAGE = {
+    visitorId: 'ss_ab_visitor_id',
+    assignments: 'ss_ab_assignments',
+    events: 'ss_ab_events',
+  };
+
+  // ── Data ──────────────────────────────────────────────────────────
+  function getEvents() {
+    try { return JSON.parse(localStorage.getItem(STORAGE.events)) || []; }
+    catch { return []; }
+  }
+
+  function getAssignments() {
+    try { return JSON.parse(localStorage.getItem(STORAGE.assignments)) || {}; }
+    catch { return {}; }
+  }
+
+  function getVisitorId() {
+    return localStorage.getItem(STORAGE.visitorId) || '—';
+  }
+
+  // ── Confidence Interval (Wilson score, simplified) ────────────────
+  function wilsonCI(conversions, impressions, z) {
+    if (impressions === 0) return { lower: 0, upper: 0 };
+    z = z || 1.96; // 95%
+    const p = conversions / impressions;
+    const n = impressions;
+    const denom = 1 + z * z / n;
+    const center = (p + z * z / (2 * n)) / denom;
+    const margin = (z / denom) * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n));
+    return {
+      lower: Math.max(0, center - margin),
+      upper: Math.min(1, center + margin),
+    };
+  }
+
+  // ── Compute Results ───────────────────────────────────────────────
+  function computeResults() {
+    const events = getEvents();
+    const tests = (typeof AB_TESTS !== 'undefined') ? AB_TESTS : [];
+
+    return tests.map(test => {
+      const testEvents = events.filter(e => e.testId === test.id);
+      const variants = test.variants.map(v => {
+        const exposures = testEvents.filter(e => e.variantId === v.id && e.type === 'exposure').length;
+        const conversions = testEvents.filter(e => e.variantId === v.id && e.type === 'conversion').length;
+        const rate = exposures > 0 ? conversions / exposures : 0;
+        const ci = wilsonCI(conversions, exposures);
+        return {
+          id: v.id,
+          label: v.label,
+          impressions: exposures,
+          conversions,
+          rate,
+          ci,
+        };
+      });
+
+      // Find winner (highest conversion rate, min 3 impressions)
+      const eligible = variants.filter(v => v.impressions >= 3);
+      const winner = eligible.length > 0
+        ? eligible.reduce((a, b) => a.rate > b.rate ? a : b)
+        : null;
+
+      const totalImpressions = variants.reduce((s, v) => s + v.impressions, 0);
+      const totalConversions = variants.reduce((s, v) => s + v.conversions, 0);
+
+      return {
+        ...test,
+        variants,
+        winnerId: winner ? winner.id : null,
+        totalImpressions,
+        totalConversions,
+        overallRate: totalImpressions > 0 ? totalConversions / totalImpressions : 0,
+      };
+    });
+  }
+
+  // ── Render ────────────────────────────────────────────────────────
+  function render() {
+    const results = computeResults();
+    const container = document.getElementById('testsContainer');
+    const summaryRow = document.getElementById('summaryRow');
+    const visitorInfo = document.getElementById('visitorInfo');
+
+    visitorInfo.textContent = `Visitor: ${getVisitorId().slice(0, 24)}… | Events: ${getEvents().length}`;
+
+    // Summary
+    const totalImp = results.reduce((s, t) => s + t.totalImpressions, 0);
+    const totalConv = results.reduce((s, t) => s + t.totalConversions, 0);
+    const testsWithWinner = results.filter(t => t.winnerId).length;
+
+    summaryRow.innerHTML = `
+      <div class="summary-box"><div class="val">${totalImp}</div><div class="lbl">Total Impressions</div></div>
+      <div class="summary-box"><div class="val">${totalConv}</div><div class="lbl">Total Conversions</div></div>
+      <div class="summary-box"><div class="val">${totalImp > 0 ? (totalConv / totalImp * 100).toFixed(1) : '0.0'}%</div><div class="lbl">Overall Rate</div></div>
+      <div class="summary-box"><div class="val">${testsWithWinner}/${results.length}</div><div class="lbl">Tests with Leader</div></div>
+    `;
+
+    if (!results.length) {
+      container.innerHTML = '<div class="empty">No A/B tests configured. Add tests in ab-config.js.</div>';
+      return;
+    }
+
+    container.innerHTML = results.map(test => {
+      const maxRate = Math.max(...test.variants.map(v => v.rate), 0.01);
+
+      return `
+        <div class="test-card">
+          <h2>${test.name}</h2>
+          <div class="desc">${test.description || ''}</div>
+          <span class="status ${test.active ? 'active' : 'paused'}">${test.active ? '● Active' : '○ Paused'}</span>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Variant</th>
+                <th>Label</th>
+                <th>Impressions</th>
+                <th>Conversions</th>
+                <th>Rate</th>
+                <th class="bar-cell">Distribution</th>
+                <th>95% CI</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${test.variants.map(v => {
+                const isWinner = v.id === test.winnerId;
+                const barWidth = (v.rate / maxRate * 100).toFixed(1);
+                return `
+                  <tr>
+                    <td>
+                      <span class="variant-badge ${isWinner ? 'winner' : ''}">${v.id}</span>
+                      ${isWinner ? '<span class="winner-tag">Leading</span>' : ''}
+                    </td>
+                    <td class="variant-label">${v.label}</td>
+                    <td class="metric">${v.impressions}</td>
+                    <td class="metric">${v.conversions}</td>
+                    <td class="metric ${isWinner ? 'highlight' : ''}">${(v.rate * 100).toFixed(1)}%</td>
+                    <td class="bar-cell">
+                      <div class="bar-wrap">
+                        <div class="bar-fill ${isWinner ? 'winner' : ''}" style="width:${barWidth}%"></div>
+                      </div>
+                    </td>
+                    <td class="ci">[${(v.ci.lower * 100).toFixed(1)}%, ${(v.ci.upper * 100).toFixed(1)}%]</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ── Actions ───────────────────────────────────────────────────────
+  window.loadData = render;
+
+  window.exportCSV = function () {
+    const results = computeResults();
+    let csv = 'Test,Variant,Label,Impressions,Conversions,Rate,CI_Lower,CI_Upper\n';
+    results.forEach(t => {
+      t.variants.forEach(v => {
+        csv += `"${t.name}","${v.id}","${v.label}",${v.impressions},${v.conversions},${(v.rate * 100).toFixed(2)}%,${(v.ci.lower * 100).toFixed(2)}%,${(v.ci.upper * 100).toFixed(2)}%\n`;
+      });
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ab-results-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+  };
+
+  window.clearData = function () {
+    if (confirm('Clear all A/B test data? This cannot be undone.')) {
+      localStorage.removeItem(STORAGE.events);
+      localStorage.removeItem(STORAGE.assignments);
+      render();
+    }
+  };
+
+  // ── Init ──────────────────────────────────────────────────────────
+  render();
+})();
+</script>
+</body>
+</html>
