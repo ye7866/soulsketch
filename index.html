@@ -177,11 +177,17 @@ select option{background:#1a1a2e;color:#e8e8f0}
 .avatar-frame .avatar-inner{
   width:100%;height:100%;border-radius:50%;background:var(--bg);
   display:flex;align-items:center;justify-content:center;
-  font-size:60px;overflow:hidden;
+  font-size:60px;overflow:hidden;position:relative;
   transition:opacity 0.5s;
 }
 .avatar-frame .avatar-inner svg{width:100%;height:100%}
 .avatar-frame .avatar-inner img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.avatar-frame .avatar-inner .ai-portrait{
+  width:100%;height:100%;object-fit:cover;border-radius:50%;
+  position:absolute;inset:0;opacity:0;
+  transition:opacity 0.5s ease;
+}
+.avatar-frame .avatar-inner .ai-portrait.loaded{opacity:1}
 .avatar-frame.generating .avatar-inner{
   animation:shimmerBg 1.5s ease-in-out infinite;
 }
@@ -211,6 +217,15 @@ select option{background:#1a1a2e;color:#e8e8f0}
   border-radius:50%;width:36px;height:36px;
   display:flex;align-items:center;justify-content:center;font-size:18px;
 }
+
+.ai-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  margin-top:10px;padding:4px 12px;border-radius:20px;
+  font-size:11px;color:var(--gold-light);
+  background:rgba(212,165,116,0.08);border:1px solid rgba(212,165,116,0.15);
+  opacity:0;transition:opacity 0.5s ease;letter-spacing:0.5px;
+}
+.ai-badge.visible{opacity:1}
 
 .soulmate-name{
   font-family:'Cinzel',serif;font-size:26px;color:var(--gold);
@@ -311,11 +326,167 @@ select option{background:#1a1a2e;color:#e8e8f0}
 .slide-up{animation:slideUp 0.8s ease-out}
 @keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
 
+/* === Paywall Hook System === */
+
+/* Teaser text with gradient fade */
+.hook-teaser{position:relative;padding:16px;background:rgba(255,255,255,0.02);border-radius:12px;border-left:3px solid var(--purple)}
+.hook-teaser-inner{font-size:14px;line-height:1.7;color:var(--text-dim);max-height:120px;overflow:hidden}
+.hook-teaser-fade{
+  position:absolute;bottom:0;left:0;right:0;height:60px;
+  background:linear-gradient(to bottom, transparent, rgba(10,10,18,0.95));
+  pointer-events:none;border-radius:0 0 12px 12px;
+}
+.hook-teaser-cta{
+  text-align:center;padding:14px 0 4px;font-size:13px;color:var(--accent);
+  cursor:pointer;transition:color 0.3s;letter-spacing:0.5px;
+}
+.hook-teaser-cta:hover{color:var(--gold)}
+
+/* Progress Ring */
+.hook-progress-section{text-align:center;padding:30px 20px;margin:16px 0}
+.hook-progress-ring{width:130px;height:130px;margin:0 auto 16px;position:relative}
+.hook-progress-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.hook-ring-bg{fill:none;stroke:rgba(255,255,255,0.05);stroke-width:6}
+.hook-ring-fg{
+  fill:none;stroke:url(#hookGrad);stroke-width:6;stroke-linecap:round;
+  stroke-dasharray:345.58;stroke-dashoffset:345.58;
+}
+.hook-ring-pulse{animation:hookRingPulse 1.5s ease-in-out infinite}
+@keyframes hookRingPulse{
+  0%,100%{filter:drop-shadow(0 0 8px rgba(139,92,246,0.3))}
+  50%{filter:drop-shadow(0 0 20px rgba(139,92,246,0.6))}
+}
+.hook-progress-text{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+}
+.hook-progress-pct{font-size:32px;font-weight:700;color:var(--gold);position:relative}
+.hook-progress-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px}
+.hook-progress-message{font-size:13px;color:var(--text-dim);margin-top:4px}
+
+/* Shimmer on 99% text */
+.hook-shimmer-text{
+  background:linear-gradient(90deg,var(--gold),var(--accent),var(--gold),var(--accent));
+  background-size:200% 100%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  animation:hookShimmer 2s linear infinite;
+}
+@keyframes hookShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Last 1% easter egg */
+.hook-last-one{
+  font-size:14px;cursor:pointer;vertical-align:super;
+  -webkit-text-fill-color:var(--accent);
+  transition:transform 0.2s;display:inline-block;margin-left:2px;
+}
+.hook-last-one:hover{transform:scale(1.3)}
+
+/* Tooltip */
+.hook-tooltip{
+  position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);
+  background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);
+  color:var(--text);font-size:12px;padding:10px 16px;border-radius:12px;
+  white-space:nowrap;pointer-events:none;
+  animation:hookFadeUp 0.3s ease-out;z-index:10;
+}
+@keyframes hookFadeUp{from{opacity:0;transform:translateX(-50%) translateY(5px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* Hook Paywall */
+.hook-paywall{text-align:center;padding:20px 16px;margin:0 0 16px}
+.hook-paywall-header{margin-bottom:20px}
+.hook-paywall-title{
+  font-family:'Cinzel',serif;font-size:18px;color:var(--gold);margin-bottom:6px;
+}
+.hook-paywall-sub{font-size:13px;color:var(--text-dim)}
+
+/* Countdown */
+.hook-countdown{margin:20px 0 24px}
+.hook-countdown-clock{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:12px 24px;border-radius:50px;
+  background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.15);
+  animation:hookPulse 2s ease-in-out infinite;
+}
+@keyframes hookPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(139,92,246,0.2)}
+  50%{box-shadow:0 0 0 8px rgba(139,92,246,0)}
+}
+.hook-countdown-icon{font-size:18px}
+.hook-countdown-time{font-size:22px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
+.hook-countdown-msg{font-size:12px;color:var(--text-dim);margin-top:8px}
+
+/* Feature list */
+.hook-features{margin:0 0 24px;text-align:left}
+.hook-feature{
+  display:flex;align-items:center;gap:14px;
+  padding:12px 16px;margin-bottom:6px;
+  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);
+  border-radius:12px;cursor:pointer;transition:all 0.3s;
+}
+.hook-feature:active{transform:scale(0.98)}
+.hook-feature-icon{font-size:20px;flex-shrink:0;width:28px;text-align:center}
+.hook-feature-info{flex:1;min-width:0}
+.hook-feature-label{font-size:13px;color:var(--text);font-weight:500}
+.hook-feature-hint{
+  font-size:11px;color:var(--text-dim);margin-top:2px;
+  filter:blur(2px);transition:filter 0.3s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.hook-feature.locked:hover .hook-feature-hint{filter:blur(1px)}
+.hook-feature.locked{cursor:default}
+
+/* Shake animation for locked items */
+@keyframes hookShake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-4px)}
+  40%{transform:translateX(4px)}
+  60%{transform:translateX(-3px)}
+  80%{transform:translateX(3px)}
+}
+@keyframes hookLockBounce{
+  0%{transform:scale(1)}
+  30%{transform:scale(1.2) rotate(-10deg)}
+  60%{transform:scale(0.9) rotate(5deg)}
+  100%{transform:scale(1) rotate(0)}
+}
+
+/* Subscribe button heartbeat */
+.hook-subscribe-btn{animation:hookHeartbeat 2s ease-in-out infinite}
+@keyframes hookHeartbeat{
+  0%,100%{transform:scale(1);box-shadow:0 4px 20px rgba(139,92,246,0.3)}
+  14%{transform:scale(1.02);box-shadow:0 6px 25px rgba(139,92,246,0.4)}
+  28%{transform:scale(1);box-shadow:0 4px 20px rgba(139,92,246,0.3)}
+  42%{transform:scale(1.02);box-shadow:0 6px 25px rgba(139,92,246,0.4)}
+  56%{transform:scale(1);box-shadow:0 4px 20px rgba(139,92,246,0.3)}
+}
+.hook-subscribe-btn:hover{animation:none;transform:translateY(-2px);box-shadow:0 8px 30px rgba(139,92,246,0.5)}
+.hook-subscribe-lapsed{animation:none!important;opacity:0.85}
+
+/* Guarantee + social proof inside hook */
+.hook-guarantee{font-size:11px;color:rgba(255,255,255,0.3);margin-top:14px}
+.hook-social-proof{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-top:12px;font-size:12px;color:var(--text-dim);
+}
+.hook-social-proof .avatars{display:flex}
+.hook-social-proof .avatars span{
+  width:24px;height:24px;border-radius:50%;border:2px solid var(--bg);
+  display:inline-flex;align-items:center;justify-content:center;font-size:12px;
+  margin-left:-6px;background:rgba(139,92,246,0.2);
+}
+.hook-social-proof .avatars span:first-child{margin-left:0}
+
+/* Price options inside hook (reuse existing styles) */
+.hook-price-options{display:flex;gap:10px;margin-bottom:16px}
+
+/* Trait reveal animation */
+.hook-trait-reveal{animation:hookTraitIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards}
+@keyframes hookTraitIn{from{opacity:0;transform:translateY(10px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+
 /* === Responsive === */
 @media(max-width:360px){
   .logo{font-size:26px}
   .zodiac-grid{grid-template-columns:repeat(3,1fr)}
-  .price-options{flex-direction:column}
+  .price-options,.hook-price-options{flex-direction:column}
 }
 </style>
 </head>
@@ -439,6 +610,7 @@ select option{background:#1a1a2e;color:#e8e8f0}
         <div class="avatar-inner" id="soulmateAvatar">🔮</div>
         <div class="zodiac-badge" id="zodiacBadge">♈</div>
       </div>
+      <div class="ai-badge" id="aiBadge">✨ AI Generated</div>
       <div class="soulmate-name" id="resultName">—</div>
       <div class="soulmate-zodiac" id="resultZodiac">—</div>
 
@@ -522,12 +694,16 @@ select option{background:#1a1a2e;color:#e8e8f0}
   </div>
 </div>
 
+<script src="share-card.js"></script>
+<script src="share-modal.js"></script>
 <script src="utm-tracker.js"></script>
 <script src="deeplink.js"></script>
 <script src="ab-config.js"></script>
 <script src="ab-testing.js"></script>
+<script src="ai-portrait.js"></script>
 <script src="portrait-engine.js"></script>
 <script src="ai-engine.js"></script>
+<script src="paywall-hook.js"></script>
 <script>
 // ===== DATA =====
 const zodiacs = [
@@ -734,13 +910,49 @@ function showResult(userName, soulName, userZodiac, soulZodiac, aiResult){
   const rp = document.getElementById('resultPage');
   rp.classList.add('active');
 
-  // Generate SVG portrait
+  // Generate SVG portrait IMMEDIATELY (instant)
   const avatarEl = document.getElementById('soulmateAvatar');
   avatarEl.innerHTML = '<div style="opacity:0.3;font-size:40px">✨</div>';
   PortraitEngine.generatePortrait(soulZodiac.name, gender).then(({imageUrl, svgString})=>{
     avatarEl.innerHTML = svgString;
     avatarEl.querySelector('svg').style.width = '100%';
     avatarEl.querySelector('svg').style.height = '100%';
+
+    // ── AI Portrait: async crossfade ──
+    if (window.AIPortrait) {
+      AIPortrait.generateAIPortrait({ zodiac: soulZodiac.name, gender: gender })
+        .then(function(result) {
+          if (result && result.imageUrl) {
+            var img = new Image();
+            img.onload = function() {
+              img.className = 'ai-portrait';
+              img.alt = 'AI portrait';
+              avatarEl.style.position = 'relative';
+              avatarEl.appendChild(img);
+              requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                  img.classList.add('loaded');
+                });
+              });
+              var badge = document.getElementById('aiBadge');
+              if (badge) badge.classList.add('visible');
+              if (typeof window.trackEvent === 'function') {
+                trackEvent('portrait_generated', { source: 'ai', zodiac: soulZodiac.name });
+              }
+            };
+            img.src = result.imageUrl;
+          } else {
+            if (typeof window.trackEvent === 'function') {
+              trackEvent('portrait_generated', { source: 'svg', zodiac: soulZodiac.name });
+            }
+          }
+        })
+        .catch(function() {
+          if (typeof window.trackEvent === 'function') {
+            trackEvent('portrait_generated', { source: 'svg', zodiac: soulZodiac.name });
+          }
+        });
+    }
   }).catch(()=>{
     avatarEl.textContent = '🔮';
   });
@@ -749,24 +961,17 @@ function showResult(userName, soulName, userZodiac, soulZodiac, aiResult){
   document.getElementById('resultZodiac').textContent =
     `${soulZodiac.name} · ${soulZodiac.dates}`;
 
-  // Animate score
-  setTimeout(()=>{
-    const ring = document.getElementById('scoreRing');
-    const offset = 314 - (314 * score / 100);
-    ring.style.strokeDashoffset = offset;
-    animateNumber('scoreNum',0,score,1500);
-  },300);
-
-  // Traits
+  // ── STAGED REVEAL: Show only Stage 1 traits (1 of 5) initially ──
   const traitsEl = document.getElementById('traits');
-  traitsEl.innerHTML = traits.map(t=>`<span class="trait">${t}</span>`).join('');
+  traitsEl.innerHTML = `<span class="trait">${traits[0] || 'Mysterious'}</span>`;
 
-  // Reading text — format paragraphs
-  const readingEl = document.getElementById('readingText');
-  readingEl.innerHTML = reading
-    .split(/\n{2,}/)
-    .map(p => `<p style="margin-bottom:12px">${p.trim()}</p>`)
-    .join('');
+  // Hide the old reading/blurred text — PaywallHook manages this
+  const readingContent = document.getElementById('readingContent');
+  if (readingContent) readingContent.innerHTML = '';
+
+  // Hide the old paywall — PaywallHook creates its own
+  const oldPaywall = document.getElementById('paywall');
+  if (oldPaywall) oldPaywall.style.display = 'none';
 
   // Scroll to top
   window.scrollTo({top:0,behavior:'smooth'});
@@ -775,7 +980,21 @@ function showResult(userName, soulName, userZodiac, soulZodiac, aiResult){
   setTimeout(function(){
     if(typeof window.trackEvent==='function') trackEvent('paywall_view');
   },500);
+
+  // ── Launch the staged reveal hook system ──
+  if (window.PaywallHook) {
+    PaywallHook.run({
+      score: score,
+      reading: reading,
+      traits: traits,
+      soulName: soulName,
+      soulZodiac: soulZodiac,
+      userName: userName,
+      gender: gender
+    });
+  }
 }
+
 
 // ===== HELPERS =====
 function animateNumber(id,from,to,dur){
@@ -806,14 +1025,40 @@ function handleSubscribe(){
   // Track subscribe click
   if(typeof window.trackEvent==='function') trackEvent('subscribe_click',{plan:selectedPlan});
 
-  // Overridden by stripe-integration.js — this is a safe fallback
-  document.getElementById('paywall').style.display='none';
-  document.getElementById('readingText').style.filter='none';
-  document.getElementById('readingText').style.userSelect='auto';
+  // Hide both old and new paywalls
+  var oldPaywall = document.getElementById('paywall');
+  if (oldPaywall) oldPaywall.style.display='none';
+  var hookPaywall = document.getElementById('hookPaywall');
+  if (hookPaywall) hookPaywall.style.display='none';
+
+  // Show share section
   document.getElementById('shareSection').style.display='block';
 
   // Track subscribe complete (fallback path; stripe may override)
   if(typeof window.trackEvent==='function') trackEvent('subscribe_complete',{plan:selectedPlan});
+
+  // Dramatic typewriter reveal of full reading
+  var readingContent = document.getElementById('readingContent');
+  if (readingContent) {
+    // Try to get the full reading from stored data or reconstruct
+    var fullText = '';
+    var readingEl = document.getElementById('readingText');
+    if (readingEl && readingEl.textContent.trim().length > 0) {
+      fullText = readingEl.textContent;
+    }
+    // If PaywallHook has the data, use its typewriter
+    if (window.PaywallHook && fullText) {
+      readingContent.innerHTML = '<div class="reading-text" id="readingText" style="filter:none;user-select:auto"></div>';
+      PaywallHook.typewriterReveal(fullText, 'readingText');
+    } else if (readingEl) {
+      readingEl.style.filter='none';
+      readingEl.style.userSelect='auto';
+    }
+  }
+
+  // Also show the reading card if hidden
+  var readingCard = readingContent ? readingContent.closest('.card') : null;
+  if (readingCard) readingCard.style.display = '';
 
   // Replace static share button with deep-link share row
   var shareSection = document.getElementById('shareSection');
@@ -823,9 +1068,11 @@ function handleSubscribe(){
   }
 }
 
+
 function handleShare(){
-  // Use deep link system
-  if(window.DeepLink){
+  if(window.ShareModal){
+    ShareModal.open();
+  } else if(window.DeepLink){
     DeepLink.universalShare();
   } else {
     var name = document.getElementById('resultName').textContent;
