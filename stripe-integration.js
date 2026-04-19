@@ -42,10 +42,14 @@
   // ── Unlock helpers (shared with existing page logic) ──────────────
   function unlockReading() {
     const paywall  = document.getElementById('paywall');
+    const hookPw   = document.getElementById('hookPaywall');
+    const hookProg = document.getElementById('hookProgress');
     const reading  = document.getElementById('readingText');
     const share    = document.getElementById('shareSection');
 
     if (paywall) paywall.style.display = 'none';
+    if (hookPw) hookPw.style.display = 'none';
+    if (hookProg) hookProg.style.display = 'none';
     if (reading) {
       reading.style.filter = 'none';
       reading.style.userSelect = 'auto';

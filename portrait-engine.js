@@ -9,8 +9,8 @@
   const COLORS = {
     stroke: '#c084fc',      // purple accent
     accent: '#d4a574',      // gold
-    dim: 'rgba(192,132,252,0.3)',
-    highlight: 'rgba(212,165,116,0.6)'
+    dim: 'rgba(192,132,252,0.5)',
+    highlight: 'rgba(212,165,116,0.7)'
   };
 
   // SVG templates - stroke-based line art, NOT filled shapes
