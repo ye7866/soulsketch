@@ -364,7 +364,7 @@
       </button>
 
       <div class="hook-guarantee">
-        🔒 Secured by LemonSqueezy · Cancel anytime · 7-day money-back guarantee
+        🔒 Secured by Gumroad · Cancel anytime · 7-day money-back guarantee
       </div>
 
       <div class="hook-social-proof">

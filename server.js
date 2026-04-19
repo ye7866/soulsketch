@@ -21,9 +21,9 @@ const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || null;
 const STATIC_DIR = __dirname;
 
-// ── LemonSqueezy config ────────────────────────────────────────────
-const LEMONSQUEEZY_WEBHOOK_SECRET = process.env.LEMONSQUEEZY_WEBHOOK_SECRET || null;
-const DEMO = !LEMONSQUEEZY_WEBHOOK_SECRET;
+// ── Payment config (Gumroad) ───────────────────────────────────────
+const GUMROAD_WEBHOOK_SECRET = process.env.GUMROAD_WEBHOOK_SECRET || null;
+const DEMO = !GUMROAD_WEBHOOK_SECRET;
 
 // In-memory stores
 const paidOrders = new Map();     // orderId → { plan, email, ts }
@@ -104,63 +104,40 @@ function callOpenAIImage(prompt) {
   });
 }
 
-// ── LemonSqueezy webhook signature verification ────────────────────
-function verifyLemonSqueezySignature(payload, signature, secret) {
+// ── Gumroad webhook signature verification ──────────────────────────
+function verifyGumroadSignature(payload, secret) {
   if (!secret) return false;
-  const hmac = crypto.createHmac('sha256', secret);
-  hmac.update(payload);
-  const digest = hmac.digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest));
+  // Gumroad sends a 'signing_secret' field in the body for verification
+  // Or you can verify the source IP (Gumroad sends from specific IPs)
+  // For simplicity, we check if the provided secret matches
+  return payload.resource?.signing_secret === secret || payload.signing_secret === secret;
 }
 
 // ── Express middleware ──────────────────────────────────────────────
 // Webhook needs raw body BEFORE json parser
 app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) => {
-  // LemonSqueezy webhook
-  const signature = req.headers['x-signature'];
-  if (!signature) return res.status(400).json({ error: 'Missing signature' });
-
-  if (!LEMONSQUEEZY_WEBHOOK_SECRET) {
-    console.log('[webhook] No secret configured, accepting (demo)');
-    return res.json({ received: true, demo: true });
-  }
-
-  const rawBody = req.body.toString();
-  if (!verifyLemonSqueezySignature(rawBody, signature, LEMONSQUEEZY_WEBHOOK_SECRET)) {
-    console.error('[webhook] Invalid signature');
-    return res.status(401).json({ error: 'Invalid signature' });
-  }
-
+  let body;
   try {
-    const event = JSON.parse(rawBody);
-    const eventName = event.meta?.event_name;
-    const attrs = event.data?.attributes;
-
-    switch (eventName) {
-      case 'order_created':
-      case 'subscription_created': {
-        const orderId = event.data?.id;
-        const variantName = (attrs?.first_order_item?.variant_name || attrs?.variant_name || '').toLowerCase();
-        const email = attrs?.user_email || attrs?.customer_email || '';
-        const plan = ['weekly', 'monthly', 'yearly'].find(p => variantName.includes(p)) || 'monthly';
-
-        paidOrders.set(String(orderId), { plan, email, ts: Date.now() });
-        console.log(`✅ Payment received — order ${orderId}, plan: ${plan}, email: ${email}`);
-        break;
-      }
-      case 'subscription_expired':
-      case 'subscription_cancelled': {
-        console.log(`[webhook] Subscription ended: ${event.data?.id}`);
-        // TODO: revoke access
-        break;
-      }
-      default:
-        console.log(`[webhook] Unhandled event: ${eventName}`);
-    }
-  } catch (err) {
-    console.error('[webhook] Parse error:', err.message);
-    return res.status(400).json({ error: 'Invalid payload' });
+    body = JSON.parse(req.body.toString());
+  } catch {
+    return res.status(400).json({ error: 'Invalid JSON' });
   }
+
+  // Gumroad ping verification (they send a test ping first)
+  if (body.ping) {
+    console.log('[webhook] Gumroad ping received ✓');
+    return res.json({ received: true });
+  }
+
+  // Gumroad sale event
+  const sale = body;
+  const productName = (sale.product_name || '').toLowerCase();
+  const email = sale.email || '';
+  const saleId = sale.sale_id || sale.id || 'unknown';
+  const plan = ['weekly', 'monthly', 'yearly'].find(p => productName.includes(p)) || 'monthly';
+
+  paidOrders.set(saleId, { plan, email, ts: Date.now() });
+  console.log(`✅ Sale received — ${saleId}, plan: ${plan}, email: ${email}`);
 
   res.json({ received: true });
 });
@@ -238,8 +215,8 @@ app.get('/api/verify-order/:id', (req, res) => {
     return res.json({ access: true, plan: order.plan, token: demoToken() });
   }
 
-  // Unknown order — if we have webhook secret, be strict; otherwise grant access
-  if (LEMONSQUEEZY_WEBHOOK_SECRET) {
+  // Unknown order — if payment is configured, be strict; otherwise grant access
+  if (GUMROAD_WEBHOOK_SECRET) {
     return res.status(404).json({ access: false, error: 'Order not found' });
   }
   res.json({ access: true, demo: true, plan: 'monthly', token: demoToken() });
@@ -259,7 +236,7 @@ app.get('/api/health', (_req, res) => {
     status: 'ok',
     demo: DEMO,
     openai: !!OPENAI_API_KEY,
-    payment: LEMONSQUEEZY_WEBHOOK_SECRET ? 'lemonsqueezy' : 'demo',
+    payment: GUMROAD_WEBHOOK_SECRET ? 'gumroad' : 'demo',
     uptime: process.uptime(),
   });
 });
@@ -274,7 +251,7 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`\n  ✨ SoulSketch running at http://localhost:${PORT}`);
   console.log(`  📡 OpenAI: ${OPENAI_API_KEY ? 'configured ✓' : 'not set (local engine)'}`);
-  console.log(`  💳 Payment: ${DEMO ? 'demo mode' : 'LemonSqueezy ✓'}`);
+  console.log(`  💳 Payment: ${DEMO ? 'demo mode' : 'Gumroad ✓'}`);
   console.log(`  📁 Static: ${STATIC_DIR}\n`);
 });
 
