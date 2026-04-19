@@ -77,11 +77,15 @@
   }
 
   async function handleSubscribe() {
-    const btn = document.querySelector('#paywall .cta');
+    // Try both old paywall and hook paywall buttons
+    const btn = document.querySelector('#paywall .cta') || document.querySelector('#hookPaywall .cta');
     showSubscribeLoading(btn, true);
 
     const plan = (typeof selectedPlan !== 'undefined' && PLANS[selectedPlan])
       ? selectedPlan : 'monthly';
+
+    // Track subscribe click
+    if (typeof window.trackEvent === 'function') window.trackEvent('subscribe_click', { plan });
 
     // ── Demo shortcut ───────────────────────────────────────────────
     if (isDemoMode()) {
@@ -90,6 +94,7 @@
       storeAccess(plan, token);
       unlockReading();
       showSubscribeLoading(btn, false);
+      if (typeof window.trackEvent === 'function') window.trackEvent('subscribe_complete', { plan, demo: true });
       return;
     }
 

@@ -143,6 +143,18 @@
       metadata: metadata || {},
     };
 
+    // TikTok Pixel integration
+    if (typeof ttq !== 'undefined') {
+      var ttMap = {
+        form_submit:        ['SubmitForm', {}],
+        subscribe_click:    ['InitiateCheckout', {}],
+        subscribe_complete: ['CompletePayment', { value: 9.99, currency: 'USD' }],
+        share_click:        ['Share', {}],
+      };
+      var tt = ttMap[eventName];
+      if (tt) { try { ttq.track(tt[0], tt[1]); } catch(_){} }
+    }
+
     // Fire-and-forget; never block UX
     if (typeof navigator.sendBeacon === 'function') {
       try {

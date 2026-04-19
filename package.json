@@ -1,0 +1,17 @@
+{
+  "name": "soulsketch",
+  "version": "1.0.0",
+  "description": "AI-powered soulmate matching web app",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "stripe": "^14.0.0"
+  }
+}
